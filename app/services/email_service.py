@@ -211,7 +211,7 @@ class EmailService:
         dni_cliente = datos_poliza["cliente"]["dni"]
         
         # Asunto del email
-        asunto = f"¡Bienvenido a Rumbo! - Póliza RumbIA{datos_poliza['id_poliza']:03d}"
+        asunto = f"¡Bienvenido a Rumbo! - Póliza RumbIA{datos_poliza['id_poliza']:03d} 🤑​🤩"
         
         # Enviar email
         return self.enviar_email(

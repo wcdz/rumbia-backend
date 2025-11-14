@@ -66,20 +66,12 @@ class EmisionPolizaRequest(BaseModel):
 
 
 class EmisionPolizaResponse(BaseModel):
-    """Modelo de respuesta de emisión de póliza"""
+    """Modelo de respuesta simplificado de emisión de póliza"""
     status: str = Field(..., description="Estado de la emisión")
-    message: str = Field(..., description="Mensaje de respuesta")
-    numero_poliza: Optional[str] = Field(None, description="Número de póliza generado")
-    id_poliza: int = Field(..., description="ID de la póliza")
-    archivo_poliza: str = Field(..., description="Nombre del archivo de póliza generado")
-    documento_generado: bool = Field(False, description="Indica si se generó el documento")
-    ruta_documento_word: Optional[str] = Field(None, description="Ruta del documento Word generado")
-    ruta_documento_pdf: Optional[str] = Field(None, description="Ruta del documento PDF generado")
-    email_enviado: bool = Field(False, description="Indica si se envió el email al cliente")
-    fecha_emision: datetime = Field(..., description="Fecha y hora de emisión")
-    periodo_pago_primas: int = Field(7, description="Periodo de pago de primas en días")
-    cliente: ClienteData = Field(..., description="Datos del cliente")
-    cotizacion: CotizacionData = Field(..., description="Datos de la cotización")
+    numero_poliza: str = Field(..., description="Número de póliza (RumbIA###)")
+    numero_documento: str = Field(..., description="DNI del cliente")
+    prima_mensual: float = Field(..., description="Monto de prima mensual")
+    email_enviado: bool = Field(..., description="Indica si se envió el email al cliente")
 
 
 @router.get(
@@ -241,33 +233,14 @@ async def emision_poliza(request: EmisionPolizaRequest) -> EmisionPolizaResponse
         periodo_pago_primas=7
     )
     
-    # Construir mensaje de respuesta
-    mensaje = f"Póliza emitida exitosamente para {request.cliente.nombre}"
-    if resultado["documento_generado"]:
-        if resultado["ruta_documento_pdf"]:
-            mensaje += " - Documento PDF generado correctamente"
-        else:
-            mensaje += " - Documento generado (PDF no disponible)"
+    # Calcular prima mensual (prima anual / 10)
+    prima_mensual = request.cotizacion.prima_anual / 10
     
-    # Agregar información sobre el email
-    if resultado.get("email_enviado"):
-        mensaje += f" - Email enviado a {request.cliente.correo}"
-    elif resultado["documento_generado"] and not resultado.get("email_enviado"):
-        mensaje += " - Email no pudo ser enviado"
-    
-    # Construir y retornar la respuesta
+    # Construir y retornar la respuesta simplificada
     return EmisionPolizaResponse(
         status="success",
-        message=mensaje,
         numero_poliza=resultado["numero_poliza"],
-        id_poliza=resultado["id_poliza"],
-        archivo_poliza=resultado["nombre_archivo"],
-        documento_generado=resultado["documento_generado"],
-        ruta_documento_word=resultado["ruta_documento_word"],
-        ruta_documento_pdf=resultado["ruta_documento_pdf"],
-        email_enviado=resultado.get("email_enviado", False),
-        fecha_emision=resultado["fecha_emision"],
-        periodo_pago_primas=7,
-        cliente=request.cliente,
-        cotizacion=request.cotizacion
+        numero_documento=request.cliente.dni,
+        prima_mensual=prima_mensual,
+        email_enviado=resultado.get("email_enviado", False)
     )

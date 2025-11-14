@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     SMTP_USER: str = Field(default="chavezdiaz4@gmail.com", description="Usuario SMTP")
     SMTP_PASSWORD: str = Field(default="utkw ykum scqp edha", description="Contraseña SMTP")
     FROM_EMAIL: str = Field(default="chavezdiaz4@gmail.com", description="Email remitente")
-    FROM_NAME: str = Field(default="Interseguro - Rumbo", description="Nombre remitente")
+    FROM_NAME: str = Field(default="RumbIA | Bienvenido a Interseguro", description="Nombre remitente")
     
     class Config:
         env_file = ".env"
