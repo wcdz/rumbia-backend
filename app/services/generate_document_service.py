@@ -122,8 +122,8 @@ class GenerateDocumentService:
             30: "treinta", 40: "cuarenta", 50: "cincuenta", 60: "sesenta"
         }
         
-        # Calcular plazo de vigencia (número de años de la tabla de devolución)
-        plazo_vigencia_anos = len(tabla_devolucion)
+        # Calcular plazo de vigencia basándose en periodo_pago_primas
+        plazo_vigencia_anos = datos_poliza.get("periodo_pago_primas", len(tabla_devolucion))
         plazo_vigencia_letras = numeros_letras.get(plazo_vigencia_anos, str(plazo_vigencia_anos))
         
         # Mapeo de campos según la especificación

@@ -52,16 +52,16 @@ class PolizaService:
     @staticmethod
     def generar_numero_poliza(id_poliza: int, fecha: datetime) -> str:
         """
-        Genera el número de póliza con formato POL-AAAAMMDD-HHMMSS-###
+        Genera el número de póliza con formato RumbIA###
         
         Args:
             id_poliza: ID de la póliza
-            fecha: Fecha de emisión
+            fecha: Fecha de emisión (no se usa, se mantiene por compatibilidad)
             
         Returns:
-            str: Número de póliza generado
+            str: Número de póliza generado (ej: RumbIA001)
         """
-        return f"POL-{fecha.strftime('%Y%m%d-%H%M%S')}-{id_poliza:03d}"
+        return f"RumbIA{id_poliza:03d}"
     
     @staticmethod
     def generar_nombre_archivo(id_poliza: int) -> str:
@@ -82,7 +82,8 @@ class PolizaService:
         numero_poliza: str,
         fecha_emision: datetime,
         datos_cliente: Dict[str, Any],
-        datos_cotizacion: Dict[str, Any]
+        datos_cotizacion: Dict[str, Any],
+        periodo_pago_primas: int = 7
     ) -> Dict[str, Any]:
         """
         Prepara los datos de la póliza para guardar en JSON
@@ -101,6 +102,7 @@ class PolizaService:
             "id_poliza": id_poliza,
             "numero_poliza": numero_poliza,
             "fecha_emision": fecha_emision.isoformat(),
+            "periodo_pago_primas": periodo_pago_primas,
             "cliente": {
                 "dni": datos_cliente["dni"],
                 "nombre": datos_cliente["nombre"],
@@ -151,7 +153,8 @@ class PolizaService:
         self,
         datos_cliente: Dict[str, Any],
         datos_cotizacion: Dict[str, Any],
-        generar_documento: bool = True
+        generar_documento: bool = True,
+        periodo_pago_primas: int = 7
     ) -> Dict[str, Any]:
         """
         Proceso completo de emisión de póliza
@@ -182,7 +185,8 @@ class PolizaService:
             numero_poliza=numero_poliza,
             fecha_emision=fecha_actual,
             datos_cliente=datos_cliente,
-            datos_cotizacion=datos_cotizacion
+            datos_cotizacion=datos_cotizacion,
+            periodo_pago_primas=periodo_pago_primas
         )
         
         # 6. Guardar póliza en JSON
@@ -216,8 +220,24 @@ class PolizaService:
                 print(f"⚠️ No se pudo generar el documento: {e}")
                 # No falla la emisión si no se puede generar el documento
         
-        # 8. Aquí se pueden agregar más acciones:
-        # - Enviar notificaciones al cliente
+        # 8. Enviar email con la póliza adjunta
+        resultado["email_enviado"] = False
+        if generar_documento and resultado.get("ruta_documento_pdf"):
+            try:
+                from .email_service import EmailService
+                email_service = EmailService()
+                email_enviado = email_service.enviar_email_bienvenida_poliza(
+                    datos_poliza=datos_poliza,
+                    ruta_pdf=resultado["ruta_documento_pdf"]
+                )
+                resultado["email_enviado"] = email_enviado
+                if email_enviado:
+                    print(f"✅ Email enviado a {datos_cliente['correo']}")
+            except Exception as e:
+                print(f"⚠️ No se pudo enviar el email: {e}")
+                # No falla la emisión si no se puede enviar el email
+        
+        # 9. Aquí se pueden agregar más acciones:
         # - Integrar con sistemas externos
         # - Registrar en base de datos
         # - Enviar a cola de procesamiento

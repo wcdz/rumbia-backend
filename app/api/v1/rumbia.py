@@ -75,7 +75,9 @@ class EmisionPolizaResponse(BaseModel):
     documento_generado: bool = Field(False, description="Indica si se generó el documento")
     ruta_documento_word: Optional[str] = Field(None, description="Ruta del documento Word generado")
     ruta_documento_pdf: Optional[str] = Field(None, description="Ruta del documento PDF generado")
+    email_enviado: bool = Field(False, description="Indica si se envió el email al cliente")
     fecha_emision: datetime = Field(..., description="Fecha y hora de emisión")
+    periodo_pago_primas: int = Field(7, description="Periodo de pago de primas en días")
     cliente: ClienteData = Field(..., description="Datos del cliente")
     cotizacion: CotizacionData = Field(..., description="Datos de la cotización")
 
@@ -235,7 +237,8 @@ async def emision_poliza(request: EmisionPolizaRequest) -> EmisionPolizaResponse
     resultado = poliza_service.emitir_poliza(
         datos_cliente=datos_cliente,
         datos_cotizacion=datos_cotizacion,
-        generar_documento=True  # Habilitado para generar PDF
+        generar_documento=True,  # Habilitado para generar PDF
+        periodo_pago_primas=7
     )
     
     # Construir mensaje de respuesta
@@ -245,6 +248,12 @@ async def emision_poliza(request: EmisionPolizaRequest) -> EmisionPolizaResponse
             mensaje += " - Documento PDF generado correctamente"
         else:
             mensaje += " - Documento generado (PDF no disponible)"
+    
+    # Agregar información sobre el email
+    if resultado.get("email_enviado"):
+        mensaje += f" - Email enviado a {request.cliente.correo}"
+    elif resultado["documento_generado"] and not resultado.get("email_enviado"):
+        mensaje += " - Email no pudo ser enviado"
     
     # Construir y retornar la respuesta
     return EmisionPolizaResponse(
@@ -256,7 +265,9 @@ async def emision_poliza(request: EmisionPolizaRequest) -> EmisionPolizaResponse
         documento_generado=resultado["documento_generado"],
         ruta_documento_word=resultado["ruta_documento_word"],
         ruta_documento_pdf=resultado["ruta_documento_pdf"],
+        email_enviado=resultado.get("email_enviado", False),
         fecha_emision=resultado["fecha_emision"],
+        periodo_pago_primas=7,
         cliente=request.cliente,
         cotizacion=request.cotizacion
     )

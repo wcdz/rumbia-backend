@@ -48,6 +48,14 @@ class Settings(BaseSettings):
     EXTERNAL_SERVICE_TIMEOUT: int = Field(default=30, description="Timeout para servicios externos")
     MAX_RETRIES: int = Field(default=3, description="Máximo número de reintentos")
     
+    # Configuración de Email (Hardcodeado)
+    SMTP_HOST: str = Field(default="smtp.gmail.com", description="Host del servidor SMTP")
+    SMTP_PORT: int = Field(default=587, description="Puerto del servidor SMTP")
+    SMTP_USER: str = Field(default="chavezdiaz4@gmail.com", description="Usuario SMTP")
+    SMTP_PASSWORD: str = Field(default="utkw ykum scqp edha", description="Contraseña SMTP")
+    FROM_EMAIL: str = Field(default="chavezdiaz4@gmail.com", description="Email remitente")
+    FROM_NAME: str = Field(default="Interseguro - Rumbo", description="Nombre remitente")
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
