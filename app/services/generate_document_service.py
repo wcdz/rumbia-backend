@@ -363,13 +363,14 @@ class GenerateDocumentService:
             print(f"⚠️ Error en conversión alternativa: {e}")
             return None
     
-    def generar_documento(self, datos_poliza: Dict[str, Any], generar_pdf: bool = True) -> Tuple[str, str]:
+    def generar_documento(self, datos_poliza: Dict[str, Any], generar_pdf: bool = True, solo_pdf: bool = True) -> Tuple[str, str]:
         """
         Genera el documento Word de la póliza y opcionalmente lo convierte a PDF
         
         Args:
             datos_poliza: Datos completos de la póliza
             generar_pdf: Si se debe generar también el PDF (default: True)
+            solo_pdf: Si es True, elimina el Word después de generar el PDF (default: True)
             
         Returns:
             Tuple[str, str]: (ruta_docx, ruta_pdf) - ruta_pdf puede ser None si falla
@@ -398,6 +399,15 @@ class GenerateDocumentService:
                 ruta_pdf = self.convertir_a_pdf(str(ruta_docx))
                 if ruta_pdf:
                     print(f"✅ PDF generado: {ruta_pdf}")
+                    
+                    # Si solo queremos el PDF, eliminamos el Word
+                    if solo_pdf and ruta_pdf:
+                        try:
+                            import os
+                            os.remove(ruta_docx)
+                            print(f"🗑️  Archivo Word eliminado: {ruta_docx}")
+                        except Exception as e:
+                            print(f"⚠️ No se pudo eliminar el Word: {e}")
             except Exception as e:
                 print(f"⚠️ No se pudo generar el PDF: {e}")
         

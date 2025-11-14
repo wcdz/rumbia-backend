@@ -199,14 +199,18 @@ class PolizaService:
             "ruta_documento_pdf": None
         }
         
-        # 7. Generar documento Word y PDF si está habilitado
+        # 7. Generar documento PDF (elimina el Word automáticamente)
         if generar_documento:
             try:
                 from .generate_document_service import GenerateDocumentService
                 doc_service = GenerateDocumentService()
-                ruta_word, ruta_pdf = doc_service.generar_documento(datos_poliza, generar_pdf=True)
+                ruta_word, ruta_pdf = doc_service.generar_documento(
+                    datos_poliza, 
+                    generar_pdf=True, 
+                    solo_pdf=True  # Solo mantener el PDF, eliminar el Word
+                )
                 resultado["documento_generado"] = True
-                resultado["ruta_documento_word"] = ruta_word
+                resultado["ruta_documento_word"] = None  # No se guarda el Word
                 resultado["ruta_documento_pdf"] = ruta_pdf
             except Exception as e:
                 print(f"⚠️ No se pudo generar el documento: {e}")

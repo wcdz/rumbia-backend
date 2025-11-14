@@ -235,16 +235,16 @@ async def emision_poliza(request: EmisionPolizaRequest) -> EmisionPolizaResponse
     resultado = poliza_service.emitir_poliza(
         datos_cliente=datos_cliente,
         datos_cotizacion=datos_cotizacion,
-        generar_documento=True
+        generar_documento=True  # Habilitado para generar PDF
     )
     
     # Construir mensaje de respuesta
     mensaje = f"Póliza emitida exitosamente para {request.cliente.nombre}"
     if resultado["documento_generado"]:
         if resultado["ruta_documento_pdf"]:
-            mensaje += " - Documentos Word y PDF generados correctamente"
+            mensaje += " - Documento PDF generado correctamente"
         else:
-            mensaje += " - Documento Word generado (PDF no disponible)"
+            mensaje += " - Documento generado (PDF no disponible)"
     
     # Construir y retornar la respuesta
     return EmisionPolizaResponse(

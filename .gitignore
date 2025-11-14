@@ -183,3 +183,7 @@ pids
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Archivos generados por la aplicación
+db/
+!db/.gitkeep
