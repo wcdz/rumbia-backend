@@ -65,6 +65,16 @@ class EmisionPolizaRequest(BaseModel):
     cotizacion: CotizacionData = Field(..., description="Datos de la cotización")
 
 
+class WhatsAppDetalles(BaseModel):
+    """Detalles del envío de WhatsApp"""
+    success: bool = Field(..., description="Indica si el envío fue exitoso")
+    numero_destino: str = Field(..., description="Número de WhatsApp destino")
+    mensaje_enviado: bool = Field(..., description="Indica si se envió el mensaje")
+    imagen_enviada: bool = Field(..., description="Indica si se envió la imagen")
+    pdf_enviado: bool = Field(..., description="Indica si se envió el PDF")
+    errores: list = Field(default_factory=list, description="Lista de errores si los hay")
+
+
 class EmisionPolizaResponse(BaseModel):
     """Modelo de respuesta simplificado de emisión de póliza"""
     status: str = Field(..., description="Estado de la emisión")
@@ -72,6 +82,8 @@ class EmisionPolizaResponse(BaseModel):
     numero_documento: str = Field(..., description="DNI del cliente")
     prima_mensual: float = Field(..., description="Monto de prima mensual")
     email_enviado: bool = Field(..., description="Indica si se envió el email al cliente")
+    whatsapp_enviado: bool = Field(..., description="Indica si se envió WhatsApp al cliente")
+    whatsapp_detalles: Optional[WhatsAppDetalles] = Field(None, description="Detalles del envío de WhatsApp")
 
 
 @router.get(
@@ -236,11 +248,26 @@ async def emision_poliza(request: EmisionPolizaRequest) -> EmisionPolizaResponse
     # Calcular prima mensual (prima anual / 10)
     prima_mensual = request.cotizacion.prima_anual / 10
     
-    # Construir y retornar la respuesta simplificada
+    # Preparar detalles de WhatsApp si existen
+    whatsapp_detalles = None
+    if resultado.get("whatsapp_detalles"):
+        detalles = resultado["whatsapp_detalles"]
+        whatsapp_detalles = WhatsAppDetalles(
+            success=detalles.get("success", False),
+            numero_destino=detalles.get("numero_destino", ""),
+            mensaje_enviado=detalles.get("mensaje_enviado", False),
+            imagen_enviada=detalles.get("imagen_enviada", False),
+            pdf_enviado=detalles.get("pdf_enviado", False),
+            errores=detalles.get("errores", [])
+        )
+    
+    # Construir y retornar la respuesta completa
     return EmisionPolizaResponse(
         status="success",
         numero_poliza=resultado["numero_poliza"],
         numero_documento=request.cliente.dni,
         prima_mensual=prima_mensual,
-        email_enviado=resultado.get("email_enviado", False)
+        email_enviado=resultado.get("email_enviado", False),
+        whatsapp_enviado=resultado.get("whatsapp_enviado", False),
+        whatsapp_detalles=whatsapp_detalles
     )

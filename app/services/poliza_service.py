@@ -203,7 +203,7 @@ class PolizaService:
             "ruta_documento_pdf": None
         }
         
-        # 7. Generar documento PDF (elimina el Word automáticamente)
+        # 7. Generar documento PDF (si falla, mantiene el Word)
         if generar_documento:
             try:
                 from .generate_document_service import GenerateDocumentService
@@ -211,24 +211,35 @@ class PolizaService:
                 ruta_word, ruta_pdf = doc_service.generar_documento(
                     datos_poliza, 
                     generar_pdf=True, 
-                    solo_pdf=True  # Solo mantener el PDF, eliminar el Word
+                    solo_pdf=False  # Mantener Word si no se puede generar PDF
                 )
                 resultado["documento_generado"] = True
-                resultado["ruta_documento_word"] = None  # No se guarda el Word
-                resultado["ruta_documento_pdf"] = ruta_pdf
+                
+                if ruta_pdf:
+                    # Si se generó el PDF, usarlo y eliminar el Word
+                    resultado["ruta_documento_word"] = None
+                    resultado["ruta_documento_pdf"] = ruta_pdf
+                    print(f"✅ PDF generado: {ruta_pdf}")
+                else:
+                    # Si no se generó el PDF, usar el Word
+                    resultado["ruta_documento_word"] = ruta_word
+                    resultado["ruta_documento_pdf"] = None
+                    print(f"⚠️ PDF no disponible, usando Word: {ruta_word}")
             except Exception as e:
                 print(f"⚠️ No se pudo generar el documento: {e}")
                 # No falla la emisión si no se puede generar el documento
         
         # 8. Enviar email con la póliza adjunta
         resultado["email_enviado"] = False
-        if generar_documento and resultado.get("ruta_documento_pdf"):
+        # Usar PDF si existe, si no, usar Word
+        archivo_adjunto = resultado.get("ruta_documento_pdf") or resultado.get("ruta_documento_word")
+        if generar_documento and archivo_adjunto:
             try:
                 from .email_service import EmailService
                 email_service = EmailService()
                 email_enviado = email_service.enviar_email_bienvenida_poliza(
                     datos_poliza=datos_poliza,
-                    ruta_pdf=resultado["ruta_documento_pdf"]
+                    ruta_pdf=archivo_adjunto  # Puede ser PDF o Word
                 )
                 resultado["email_enviado"] = email_enviado
                 if email_enviado:
@@ -237,10 +248,45 @@ class PolizaService:
                 print(f"⚠️ No se pudo enviar el email: {e}")
                 # No falla la emisión si no se puede enviar el email
         
-        # 9. Aquí se pueden agregar más acciones:
-        # - Integrar con sistemas externos
-        # - Registrar en base de datos
-        # - Enviar a cola de procesamiento
+        # 9. Enviar notificación por WhatsApp usando WAHA
+        resultado["whatsapp_enviado"] = False
+        resultado["whatsapp_detalles"] = None
+        
+        # Usar PDF si existe, si no, usar Word
+        if generar_documento and archivo_adjunto:
+            try:
+                from .waha_service import WahaService
+                # Usar servicio real con número del cliente (no hardcodeado)
+                waha_service = WahaService(usar_numero_hardcodeado=False)
+                
+                # Formatear el número de teléfono (limpiar y formatear)
+                telefono = datos_cliente.get("telefono", "")
+                telefono_original = telefono  # Guardar para log
+                # Limpiar el número: remover espacios, guiones, paréntesis y signos +
+                telefono = telefono.replace("+", "").replace("-", "").replace(" ", "").replace("(", "").replace(")", "")
+                # Asegurar que tenga código de país 51
+                if telefono and not telefono.startswith("51"):
+                    telefono = f"51{telefono}"
+                
+                print(f"📞 Teléfono procesado: {telefono_original} -> {telefono}")
+                
+                # Enviar paquete completo por WhatsApp
+                resultado_whatsapp = waha_service.enviar_paquete_bienvenida_poliza(
+                    numero_destino=telefono,
+                    ruta_imagen_html=None,  # TODO: Agregar ruta de imagen HTML cuando esté disponible
+                    ruta_pdf_poliza=archivo_adjunto  # Puede ser PDF o Word
+                )
+                
+                resultado["whatsapp_enviado"] = resultado_whatsapp.get("success", False)
+                resultado["whatsapp_detalles"] = resultado_whatsapp
+                
+                if resultado["whatsapp_enviado"]:
+                    print(f"✅ WhatsApp enviado a {telefono}")
+                else:
+                    print(f"⚠️ No se pudo enviar WhatsApp: {resultado_whatsapp.get('errores', [])}")
+            except Exception as e:
+                print(f"⚠️ Error al enviar WhatsApp: {e}")
+                # No falla la emisión si no se puede enviar el WhatsApp
         
         return resultado
 
