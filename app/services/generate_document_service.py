@@ -302,7 +302,7 @@ class GenerateDocumentService:
     
     def convertir_a_pdf(self, ruta_docx: str) -> str:
         """
-        Convierte un archivo Word a PDF
+        Convierte un archivo Word a PDF usando LibreOffice
         
         Args:
             ruta_docx: Ruta del archivo Word
@@ -310,19 +310,8 @@ class GenerateDocumentService:
         Returns:
             str: Ruta del archivo PDF generado
         """
-        from docx2pdf import convert
-        
-        # Generar ruta del PDF (mismo nombre, extensión .pdf)
-        ruta_pdf = str(Path(ruta_docx).with_suffix('.pdf'))
-        
-        try:
-            # Convertir a PDF
-            convert(ruta_docx, ruta_pdf)
-            return ruta_pdf
-        except Exception as e:
-            print(f"⚠️ Error al convertir a PDF: {e}")
-            # Si falla la conversión, intentar método alternativo
-            return self._convertir_pdf_alternativo(ruta_docx)
+        # Usar LibreOffice directamente (funciona en Linux y Windows)
+        return self._convertir_pdf_alternativo(ruta_docx)
     
     def _convertir_pdf_alternativo(self, ruta_docx: str) -> str:
         """
@@ -338,8 +327,9 @@ class GenerateDocumentService:
         ruta_pdf = str(Path(ruta_docx).with_suffix('.pdf'))
         
         try:
-            # Intentar con LibreOffice (si está instalado)
-            if platform.system() == "Windows":
+            sistema = platform.system()
+            
+            if sistema == "Windows":
                 # Rutas comunes de LibreOffice en Windows
                 libreoffice_paths = [
                     r"C:\Program Files\LibreOffice\program\soffice.exe",
@@ -355,9 +345,31 @@ class GenerateDocumentService:
                             "--outdir", str(Path(ruta_docx).parent),
                             ruta_docx
                         ], check=True, capture_output=True)
+                        print(f"✅ PDF generado exitosamente: {ruta_pdf}")
                         return ruta_pdf
             
-            print("⚠️ No se pudo convertir a PDF con LibreOffice")
+            elif sistema == "Linux":
+                # En Linux (Cloud Run, etc.), usar el comando soffice directamente
+                resultado = subprocess.run([
+                    "soffice",
+                    "--headless",
+                    "--convert-to", "pdf",
+                    "--outdir", str(Path(ruta_docx).parent),
+                    ruta_docx
+                ], check=True, capture_output=True, text=True, timeout=30)
+                
+                print(f"✅ PDF generado exitosamente con LibreOffice en Linux: {ruta_pdf}")
+                return ruta_pdf
+            
+            else:
+                print(f"⚠️ Sistema operativo no soportado para conversión: {sistema}")
+                return None
+                
+        except subprocess.TimeoutExpired:
+            print("⚠️ Timeout al convertir a PDF con LibreOffice")
+            return None
+        except subprocess.CalledProcessError as e:
+            print(f"⚠️ Error al ejecutar LibreOffice: {e.stderr if e.stderr else str(e)}")
             return None
         except Exception as e:
             print(f"⚠️ Error en conversión alternativa: {e}")

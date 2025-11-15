@@ -10,4 +10,4 @@ httpx==0.25.2
 pytest==7.4.3
 pytest-asyncio==0.21.1
 python-docx==1.1.0
-docx2pdf==0.1.8
+# Nota: La conversión a PDF se realiza mediante LibreOffice (instalado en el Dockerfile)
