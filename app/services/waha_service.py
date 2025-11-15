@@ -33,10 +33,10 @@ class WahaService:
             api_key: API Key para autenticación con WAHA
         """
         self.base_url = base_url or "https://waha-197831323053.us-central1.run.app"
-        self.session_id = session_id or "default"
+        self.session_id = session_id or "rumbia"
         self.is_mock = use_mock
         self.usar_numero_hardcodeado = usar_numero_hardcodeado
-        self.api_key = api_key or "d74e39d8e82248e6bac96e853d095fc8"
+        self.api_key = api_key or "aeea8b07bf994b6d888a92cc2ba38c20"
         # Número hardcodeado como fallback
         self.numero_hardcodeado = "51970941145"
         
@@ -95,7 +95,15 @@ class WahaService:
             }
             
             print(f"📱 Enviando mensaje a {numero_final}")
+            print(f"   Endpoint: {endpoint}")
+            print(f"   Payload: {payload}")
             response = requests.post(endpoint, json=payload, headers=self.headers, timeout=30)
+            
+            # Si hay error, mostrar detalles
+            if response.status_code != 200:
+                print(f"   ⚠️ Status Code: {response.status_code}")
+                print(f"   ⚠️ Response: {response.text}")
+            
             response.raise_for_status()
             
             result = response.json()
@@ -105,6 +113,12 @@ class WahaService:
             }
         except requests.exceptions.RequestException as e:
             print(f"❌ Error al enviar mensaje: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_detail = e.response.json()
+                    print(f"   Detalle del error: {error_detail}")
+                except:
+                    print(f"   Respuesta: {e.response.text}")
             return {
                 "success": False,
                 "error": str(e)
@@ -368,44 +382,43 @@ Si tienes dudas o consultas, escríbenos por aquí o entra a interseguro.pe 💙
         except Exception as e:
             resultados["errores"].append(f"Mensaje: {str(e)}")
 
-        # 2. Enviar imagen del HTML (si existe) - COMENTADO TEMPORALMENTE
-        # if ruta_imagen_html:
-        #     try:
-        #         resultado_imagen = self.enviar_imagen_desde_ruta(
-        #             numero_destino=numero_destino,
-        #             ruta_imagen=ruta_imagen_html,
-        #             caption="Vista previa de tu póliza",
-        #         )
-        #         resultados["imagen_enviada"] = resultado_imagen.get("success", False)
-        #         if not resultado_imagen.get("success"):
-        #             resultados["errores"].append(
-        #                 f"Imagen: {resultado_imagen.get('error', 'Unknown error')}"
-        #             )
-        #     except Exception as e:
-        #         resultados["errores"].append(f"Imagen: {str(e)}")
+        # 2. Enviar imagen del HTML (si existe)
+        if ruta_imagen_html:
+            try:
+                resultado_imagen = self.enviar_imagen_desde_ruta(
+                    numero_destino=numero_destino,
+                    ruta_imagen=ruta_imagen_html,
+                    caption="Vista previa de tu póliza",
+                )
+                resultados["imagen_enviada"] = resultado_imagen.get("success", False)
+                if not resultado_imagen.get("success"):
+                    resultados["errores"].append(
+                        f"Imagen: {resultado_imagen.get('error', 'Unknown error')}"
+                    )
+            except Exception as e:
+                resultados["errores"].append(f"Imagen: {str(e)}")
 
-        # 3. Enviar PDF de la póliza (si existe) - COMENTADO TEMPORALMENTE
-        # if ruta_pdf_poliza:
-        #     try:
-        #         resultado_pdf = self.enviar_documento(
-        #             numero_destino=numero_destino,
-        #             ruta_documento=ruta_pdf_poliza,
-        #             caption="Tu póliza Rumbo",
-        #         )
-        #         resultados["pdf_enviado"] = resultado_pdf.get("success", False)
-        #         if not resultado_pdf.get("success"):
-        #             resultados["errores"].append(
-        #                 f"PDF: {resultado_pdf.get('error', 'Unknown error')}"
-        #             )
-        #     except Exception as e:
-        #         resultados["errores"].append(f"PDF: {str(e)}")
+        # 3. Enviar PDF de la póliza (si existe)
+        if ruta_pdf_poliza:
+            try:
+                resultado_pdf = self.enviar_documento(
+                    numero_destino=numero_destino,
+                    ruta_documento=ruta_pdf_poliza,
+                    caption="Tu póliza Rumbo",
+                )
+                resultados["pdf_enviado"] = resultado_pdf.get("success", False)
+                if not resultado_pdf.get("success"):
+                    resultados["errores"].append(
+                        f"PDF: {resultado_pdf.get('error', 'Unknown error')}"
+                    )
+            except Exception as e:
+                resultados["errores"].append(f"PDF: {str(e)}")
 
-        # Determinar éxito general (solo mensaje por ahora)
-        resultados["success"] = resultados["mensaje_enviado"]
-        # resultados["success"] = (
-        #     resultados["mensaje_enviado"]
-        #     and (not ruta_imagen_html or resultados["imagen_enviada"])
-        #     and (not ruta_pdf_poliza or resultados["pdf_enviado"])
-        # )
+        # Determinar éxito general
+        resultados["success"] = (
+            resultados["mensaje_enviado"]
+            and (not ruta_imagen_html or resultados["imagen_enviada"])
+            and (not ruta_pdf_poliza or resultados["pdf_enviado"])
+        )
 
         return resultados
