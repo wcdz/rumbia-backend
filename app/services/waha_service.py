@@ -163,11 +163,15 @@ class WahaService:
             endpoint = f"{self.base_url}/api/sendImage"
             
             # Determinar mimetype basado en la extensión
-            mimetype = "image/jpeg"
+            mimetype = "image/jpeg"  # default
             if filename.lower().endswith('.png'):
                 mimetype = "image/png"
             elif filename.lower().endswith('.gif'):
                 mimetype = "image/gif"
+            elif filename.lower().endswith(('.jpg', '.jpeg')):
+                mimetype = "image/jpeg"
+            elif filename.lower().endswith('.webp'):
+                mimetype = "image/webp"
             
             payload = {
                 "session": self.session_id,
@@ -229,6 +233,16 @@ class WahaService:
                 return {
                     "success": False,
                     "error": f"Archivo no encontrado: {ruta_imagen}"
+                }
+            
+            # Verificar si es un archivo válido para imagen
+            valid_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+            if path.suffix.lower() not in valid_extensions:
+                print(f"⚠️ Formato no soportado como imagen: {path.name}")
+                print(f"   Formatos válidos: JPG, JPEG, PNG, GIF, WEBP")
+                return {
+                    "success": False,
+                    "error": f"Formato {path.suffix} no soportado como imagen"
                 }
             
             # Leer archivo y convertir a base64
@@ -338,17 +352,18 @@ class WahaService:
     def enviar_paquete_bienvenida_poliza(
         self,
         numero_destino: str,
+        nombre_cliente: str,
         ruta_imagen_html: Optional[str] = None,
         ruta_pdf_poliza: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Envía el paquete completo de bienvenida de póliza:
-        1. Mensaje de bienvenida
-        2. Imagen del HTML (opcional)
-        3. PDF de la póliza (opcional)
+        1. Imagen del HTML con mensaje de bienvenida en caption (opcional)
+        2. PDF de la póliza (opcional)
 
         Args:
             numero_destino: Número de teléfono del cliente
+            nombre_cliente: Nombre del cliente para personalizar el mensaje
             ruta_imagen_html: Ruta de la imagen del HTML enviado por correo
             ruta_pdf_poliza: Ruta del PDF de la póliza
 
@@ -363,24 +378,26 @@ class WahaService:
             "errores": [],
         }
 
-        # 1. Enviar mensaje de bienvenida
-        mensaje_bienvenida = """*Aseguraste tu futuro ✨*
+        # 1. Enviar mensaje de bienvenida - COMENTADO (ya se envía con la imagen)
+        # mensaje_bienvenida = """*Aseguraste tu futuro ✨*
+        #
+        # Gracias por comprar tu seguro Rumbo 🤩
+        #
+        # Revisa tu bandeja de entrada, te enviaremos tu póliza contratada 📩
+        #
+        # Si tienes dudas o consultas, escríbenos por aquí o entra a interseguro.pe 💙"""
+        #
+        # try:
+        #     resultado_mensaje = self.enviar_mensaje(numero_destino, mensaje_bienvenida)
+        #     resultados["mensaje_enviado"] = resultado_mensaje.get("success", False)
+        #     if not resultado_mensaje.get("success"):
+        #         resultados["errores"].append(
+        #             f"Mensaje: {resultado_mensaje.get('error', 'Unknown error')}"
+        #         )
+        # except Exception as e:
+        #     resultados["errores"].append(f"Mensaje: {str(e)}")
 
-Gracias por comprar tu seguro Rumbo 🤩
-
-Revisa tu bandeja de entrada, te enviaremos tu póliza contratada 📩
-
-Si tienes dudas o consultas, escríbenos por aquí o entra a interseguro.pe 💙"""
-
-        try:
-            resultado_mensaje = self.enviar_mensaje(numero_destino, mensaje_bienvenida)
-            resultados["mensaje_enviado"] = resultado_mensaje.get("success", False)
-            if not resultado_mensaje.get("success"):
-                resultados["errores"].append(
-                    f"Mensaje: {resultado_mensaje.get('error', 'Unknown error')}"
-                )
-        except Exception as e:
-            resultados["errores"].append(f"Mensaje: {str(e)}")
+        # El mensaje ya se envía como caption de la imagen (no se envía por separado)
 
         # 2. Enviar imagen del HTML (si existe)
         if ruta_imagen_html:
@@ -388,9 +405,18 @@ Si tienes dudas o consultas, escríbenos por aquí o entra a interseguro.pe 💙
                 resultado_imagen = self.enviar_imagen_desde_ruta(
                     numero_destino=numero_destino,
                     ruta_imagen=ruta_imagen_html,
-                    caption="Vista previa de tu póliza",
+                    caption=f"""*En hora buena {nombre_cliente}, aseguraste tu futuro ✨*
+
+Gracias por comprar tu seguro Rumbo 🤩
+
+Revisa tu bandeja de entrada, te enviaremos tu póliza contratada 📩
+
+Si tienes dudas o consultas, escríbenos por aquí o entra a interseguro.pe 💙""",
                 )
                 resultados["imagen_enviada"] = resultado_imagen.get("success", False)
+                # Si la imagen se envía, el mensaje también se considera enviado (va en caption)
+                if resultado_imagen.get("success"):
+                    resultados["mensaje_enviado"] = True
                 if not resultado_imagen.get("success"):
                     resultados["errores"].append(
                         f"Imagen: {resultado_imagen.get('error', 'Unknown error')}"
@@ -404,7 +430,7 @@ Si tienes dudas o consultas, escríbenos por aquí o entra a interseguro.pe 💙
                 resultado_pdf = self.enviar_documento(
                     numero_destino=numero_destino,
                     ruta_documento=ruta_pdf_poliza,
-                    caption="Tu póliza Rumbo",
+                    caption="Te adjuntamos tu póliza contratada 💸💯",
                 )
                 resultados["pdf_enviado"] = resultado_pdf.get("success", False)
                 if not resultado_pdf.get("success"):
@@ -414,11 +440,10 @@ Si tienes dudas o consultas, escríbenos por aquí o entra a interseguro.pe 💙
             except Exception as e:
                 resultados["errores"].append(f"PDF: {str(e)}")
 
-        # Determinar éxito general
+        # Determinar éxito general (al menos imagen o PDF debe enviarse)
         resultados["success"] = (
-            resultados["mensaje_enviado"]
-            and (not ruta_imagen_html or resultados["imagen_enviada"])
-            and (not ruta_pdf_poliza or resultados["pdf_enviado"])
+            (ruta_imagen_html and resultados["imagen_enviada"])
+            or (ruta_pdf_poliza and resultados["pdf_enviado"])
         )
 
         return resultados

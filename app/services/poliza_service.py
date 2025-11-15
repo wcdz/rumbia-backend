@@ -229,7 +229,50 @@ class PolizaService:
                 print(f"⚠️ No se pudo generar el documento: {e}")
                 # No falla la emisión si no se puede generar el documento
         
-        # 8. Enviar email con la póliza adjunta
+        # 8. Generar imagen del HTML del email
+        resultado["ruta_imagen_html"] = None
+        try:
+            from .email_service import EmailService
+            email_service = EmailService()
+            html_content = email_service.generar_html_email(datos_poliza)
+            
+            # Convertir HTML a imagen JPEG usando html2image
+            from pathlib import Path
+            import os
+            
+            # Crear nombre de archivo para la imagen
+            nombre_imagen_jpg = f"{numero_poliza}_email.jpg"
+            ruta_jpg = DB_DIR / "documentos" / nombre_imagen_jpg
+            
+            # Convertir HTML a JPEG usando html2image
+            try:
+                from html2image import Html2Image
+                
+                # Configurar html2image
+                hti = Html2Image(output_path=str(DB_DIR / "documentos"))
+                
+                # Generar imagen desde HTML string
+                hti.screenshot(
+                    html_str=html_content,
+                    save_as=nombre_imagen_jpg,
+                    size=(800, 1200)  # Ancho x Alto en píxeles
+                )
+                
+                resultado["ruta_imagen_html"] = str(ruta_jpg)
+                print(f"✅ HTML convertido a JPEG: {ruta_jpg}")
+                
+            except ImportError as e:
+                print(f"⚠️ html2image no disponible: {e}")
+                print(f"   Instala con: pip install html2image")
+                resultado["ruta_imagen_html"] = None
+            except Exception as e:
+                print(f"⚠️ Error al convertir HTML a imagen: {e}")
+                resultado["ruta_imagen_html"] = None
+                
+        except Exception as e:
+            print(f"⚠️ No se pudo procesar el HTML: {e}")
+        
+        # 9. Enviar email con la póliza adjunta
         resultado["email_enviado"] = False
         # Usar PDF si existe, si no, usar Word
         archivo_adjunto = resultado.get("ruta_documento_pdf") or resultado.get("ruta_documento_word")
@@ -271,9 +314,11 @@ class PolizaService:
                 print(f"📞 Teléfono procesado: {telefono_original} -> {telefono}")
                 
                 # Enviar paquete completo por WhatsApp
+                nombre_cliente = datos_cliente.get("nombre", "Cliente")
                 resultado_whatsapp = waha_service.enviar_paquete_bienvenida_poliza(
                     numero_destino=telefono,
-                    ruta_imagen_html=None,  # TODO: Agregar ruta de imagen HTML cuando esté disponible
+                    nombre_cliente=nombre_cliente,
+                    ruta_imagen_html=resultado.get("ruta_imagen_html"),  # HTML guardado
                     ruta_pdf_poliza=archivo_adjunto  # Puede ser PDF o Word
                 )
                 

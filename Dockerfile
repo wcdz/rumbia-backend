@@ -10,10 +10,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Instalar dependencias del sistema necesarias para docx2pdf y python-docx
+# Instalar dependencias del sistema necesarias para docx2pdf, python-docx y html2image
 RUN apt-get update && apt-get install -y \
     libreoffice \
+    chromium \
+    chromium-driver \
     && rm -rf /var/lib/apt/lists/*
+
+# Variables de entorno para Chromium (html2image)
+ENV CHROME_BIN=/usr/bin/chromium \
+    CHROMIUM_FLAGS="--no-sandbox --disable-dev-shm-usage --headless"
 
 # Copiar archivos de requisitos primero para aprovechar la caché de Docker
 COPY requirements.txt .
