@@ -247,6 +247,7 @@ class PolizaService:
             # Convertir HTML a JPEG usando html2image
             try:
                 from html2image import Html2Image
+                from PIL import Image, ImageChops
                 
                 # Configurar html2image
                 hti = Html2Image(output_path=str(DB_DIR / "documentos"))
@@ -257,6 +258,51 @@ class PolizaService:
                     save_as=nombre_imagen_jpg,
                     size=(800, 1200)  # Ancho x Alto en píxeles
                 )
+                
+                # Recortar bordes negros automáticamente
+                try:
+                    img = Image.open(ruta_jpg)
+                    
+                    # Convertir a RGB si es necesario
+                    if img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    
+                    # Convertir imagen a array para análisis más preciso
+                    import numpy as np
+                    img_array = np.array(img)
+                    
+                    # Detectar bordes no negros (píxeles con suma RGB > 30)
+                    # Suma de canales RGB por píxel
+                    sum_rgb = img_array.sum(axis=2)
+                    
+                    # Encontrar filas y columnas que no son negras
+                    rows_with_content = np.where(sum_rgb.sum(axis=1) > 30 * img_array.shape[1])[0]
+                    cols_with_content = np.where(sum_rgb.sum(axis=0) > 30 * img_array.shape[0])[0]
+                    
+                    if len(rows_with_content) > 0 and len(cols_with_content) > 0:
+                        # Obtener coordenadas del contenido
+                        top = rows_with_content[0]
+                        bottom = rows_with_content[-1] + 1
+                        left = cols_with_content[0]
+                        right = cols_with_content[-1] + 1
+                        
+                        # Recortar la imagen
+                        img_cropped = img.crop((left, top, right, bottom))
+                        # Guardar imagen recortada
+                        img_cropped.save(ruta_jpg, 'JPEG', quality=90)
+                        print(f"✅ Imagen recortada de {img.size} a {img_cropped.size}")
+                    else:
+                        print(f"⚠️ No se detectó contenido para recortar")
+                    
+                except ImportError:
+                    print(f"⚠️ numpy no disponible, instalando...")
+                    import subprocess
+                    subprocess.run(['pip', 'install', 'numpy'], check=True)
+                except Exception as e:
+                    print(f"⚠️ No se pudo recortar la imagen: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    # Continuar con la imagen sin recortar
                 
                 resultado["ruta_imagen_html"] = str(ruta_jpg)
                 print(f"✅ HTML convertido a JPEG: {ruta_jpg}")

@@ -65,5 +65,5 @@ temp/
 *.tmp
 *.bak
 
-# Documentos generados (opcional - descomenta si no quieres versionarlos)
-# db/documentos/*.pdf
+# Base de datos y documentos generados
+db/

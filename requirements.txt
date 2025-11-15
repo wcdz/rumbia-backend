@@ -13,3 +13,5 @@ python-docx==1.1.0
 email-validator==2.1.0
 requests==2.31.0
 html2image==2.0.4.3
+Pillow>=10.0.0
+numpy>=1.24.0
