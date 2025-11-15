@@ -1,0 +1,68 @@
+# Este archivo especifica archivos que no deben subirse a GCP
+# Similar a .gitignore pero para Google Cloud
+
+.gcloudignore
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyc
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+tests/
+test_*.py
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.local
+config.env
+
+# Documentation (opcional, puedes comentar si quieres incluirlos)
+README.md
+*.md
+
+# Docker (no los necesitamos para App Engine)
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Scripts de despliegue para Cloud Run
+deploy.sh
+deploy.bat
+cloudbuild.yaml
+
+# Git
+.git/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archivos temporales
+tmp/
+temp/
+*.tmp
+*.bak

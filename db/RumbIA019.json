@@ -1,0 +1,31 @@
+{
+  "id_poliza": 19,
+  "numero_poliza": "RumbIA019",
+  "fecha_emision": "2025-11-14T19:35:40.721659",
+  "periodo_pago_primas": 7,
+  "cliente": {
+    "dni": "87654321",
+    "nombre": "Juan Perez",
+    "fechaNacimiento": "1985-03-20",
+    "genero": "M",
+    "telefono": " 51999888777",
+    "correo": "juan.perez@example.com"
+  },
+  "cotizacion": {
+    "producto": "RUMBO",
+    "parametros": {
+      "edad_actuarial": 40,
+      "sexo": "M",
+      "prima": 350.0
+    },
+    "id": 123,
+    "fecha_creacion": "2025-11-15T00:35:40.399000+00:00",
+    "porcentaje_devolucion": 1.05,
+    "tasa_implicita": 0.019,
+    "suma_asegurada": 35000.0,
+    "devolucion": 20000.0,
+    "prima_anual": 3500.0,
+    "tabla_devolucion": "[60,70,70,70,70,113.39]"
+  },
+  "status": "activa"
+}
